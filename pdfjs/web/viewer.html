@@ -42,8 +42,27 @@ See https://github.com/adobe-type-tools/cmap-resources
     <script src="../build/pdf.js"></script>
 
     <script src="viewer.js"></script>
-  </head>
+    <script type="text/javascript" src="../jquery/jquery-1.6.2.min.js"></script>
 
+    <style type="text/css">
+      .chapter-list {
+        position: absolute;
+        top: 40px;
+        left: 0;
+        z-index: 100000;
+        display: none;
+        width: 200px;
+        height: 600px;
+        padding: 10px 0;
+        overflow-y: scroll;
+        background: #fff;
+      }
+      .chapter-list > li {
+        text-align: center;
+      }
+    </style>
+  </head>
+  <ul id="seals" class="chapter-list" style="display: none"></ul>
   <body tabindex="1" class="loadingInProgress">
     <div id="outerContainer">
       <div id="sidebarContainer">
@@ -884,12 +903,20 @@ See https://github.com/adobe-type-tools/cmap-resources
   var str = window.location.href;
   var url = str.split("?")[1];
   var instanceGUID = url.split("instanceGUID=")[1].split("&")[0];
+
+  // http://10.0.0.155:8090/riseoa/risefile/repository/yinzhang/chenkuangyin.png
   function doPubSeal() {
+    var token = localStorage.getItem("_token");
+    token = "Bearer " + JSON.parse(token).token;
+    // console.log(token)
     $.ajax({
-      url: "/spring/seal/wc?instanceGUID=" + instanceGUID + "&method=getSeal",
-      type: "post",
+      url: "http://10.0.0.155:8080/services/bodylibrary/api/bodies/seal",
+      type: "get",
+      headers: { Authorization: token },
       data: {},
       success: function (data) {
+        data = JSON.parse(data);
+        console.log(data);
         if (data.errmsg == "ok") {
           $.each(data.sealInfos, function (index, seal) {
             var sealHtml =
@@ -904,6 +931,7 @@ See https://github.com/adobe-type-tools/cmap-resources
               "'></img></li>";
             $("#seals").append(sealHtml);
           });
+
           $("#seals").css("display", "block");
           initStamp(data.sealInfos);
         } else {
@@ -914,6 +942,19 @@ See https://github.com/adobe-type-tools/cmap-resources
         alert("发生了错误，请联系管理员");
       },
     });
+  }
+  function toDataURL(url, callback) {
+    var xhr = new XMLHttpRequest();
+    xhr.onload = function () {
+      var reader = new FileReader();
+      reader.onloadend = function () {
+        callback(reader.result);
+      };
+      reader.readAsDataURL(xhr.response);
+    };
+    xhr.open("GET", url);
+    xhr.responseType = "blob";
+    xhr.send();
   }
 
   function cancelPDF() {
@@ -957,6 +998,8 @@ See https://github.com/adobe-type-tools/cmap-resources
       alert("请盖章后保存");
       return;
     }
+    var token = localStorage.getItem("_token");
+    token = "Bearer " + JSON.parse(token).token;
     var seals = [];
     //文档宽度，高度
     var contentDiv = $("#viewer .page")[0];
@@ -988,8 +1031,12 @@ See https://github.com/adobe-type-tools/cmap-resources
       seals.push(seal);
     });
     $.ajax({
-      url: "/spring/seal/wc?instanceGUID=" + instanceGUID + "&method=savePDF",
+      // url: "/spring/seal/wc?instanceGUID=" + instanceGUID + "&method=savePDF",
+      url:
+        "http://10.0.0.155:8080/services/bodylibrary/api/bodies/savepdf?doc_id=" +
+        "bfa7b446-0000-0000-45d1-5158000043ce",
       type: "post",
+      headers: { Authorization: token },
       data: { seals: JSON.stringify(seals) },
       traditional: true,
       success: function (data) {
