@@ -904,6 +904,9 @@ See https://github.com/adobe-type-tools/cmap-resources
   var url = str.split("?")[1];
   var instanceGUID = url.split("instanceGUID=")[1].split("&")[0];
 
+  var accessUrl = localStorage.getItem("gatewayurl");
+  console.log(accessUrl);
+
   // http://10.0.0.155:8090/riseoa/risefile/repository/yinzhang/chenkuangyin.png
   function doPubSeal() {
     var token = localStorage.getItem("_token");
