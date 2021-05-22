@@ -319,7 +319,12 @@ See https://github.com/adobe-type-tools/cmap-resources
 
             <button
               id="scrollVertical"
-              class="secondaryToolbarButton scrollModeButtons scrollVertical toggled"
+              class="
+                secondaryToolbarButton
+                scrollModeButtons
+                scrollVertical
+                toggled
+              "
               title="Use Vertical Scrolling"
               tabindex="62"
               data-l10n-id="scroll_vertical"
@@ -353,7 +358,12 @@ See https://github.com/adobe-type-tools/cmap-resources
 
             <button
               id="spreadNone"
-              class="secondaryToolbarButton spreadModeButtons spreadNone toggled"
+              class="
+                secondaryToolbarButton
+                spreadModeButtons
+                spreadNone
+                toggled
+              "
               title="Do not join page spreads"
               tabindex="65"
               data-l10n-id="spread_none"
@@ -902,10 +912,11 @@ See https://github.com/adobe-type-tools/cmap-resources
 <script type="text/javascript">
   var str = window.location.href;
   var url = str.split("?")[1];
-  var instanceGUID = url.split("instanceGUID=")[1].split("&")[0];
+  var instanceGUID = "";
 
+  // 获取当前服务的gateway地址
   var accessUrl = localStorage.getItem("gatewayurl");
-  console.log(accessUrl);
+  // console.log(accessUrl);
 
   // http://10.0.0.155:8090/riseoa/risefile/repository/yinzhang/chenkuangyin.png
   function doPubSeal() {
@@ -913,7 +924,7 @@ See https://github.com/adobe-type-tools/cmap-resources
     token = "Bearer " + JSON.parse(token).token;
     // console.log(token)
     $.ajax({
-      url: "http://10.0.0.155:8080/services/bodylibrary/api/bodies/seal",
+      url: `${accessUrl}/services/body/api/seal-service-logs/seal`,
       type: "get",
       headers: { Authorization: token },
       data: {},
@@ -964,25 +975,6 @@ See https://github.com/adobe-type-tools/cmap-resources
     window.parent.back2Word();
   }
 
-  function cancelSeal() {
-    $.ajax({
-      url: "/spring/seal/cancel?instanceGUID=" + instanceGUID,
-      type: "post",
-      data: {},
-      success: function (data) {
-        if (data == "1") {
-          alert("撤销盖章成功");
-          window.location.reload();
-        } else {
-          alert("撤销盖章失败，请联系管理员");
-        }
-      },
-      error: function () {
-        alert("发生了错误，请联系管理员");
-      },
-    });
-  }
-
   function initStamp(sealInfos) {
     var usernameEle = document.getElementsByTagName("li");
     for (var i = 0; i < usernameEle.length; i++) {
@@ -993,16 +985,21 @@ See https://github.com/adobe-type-tools/cmap-resources
       }
     }
   }
-
   function savePDF() {
-    //获取印章的位置
     var k = $("#viewerContainer").children("img");
     if (k.length == 0) {
       alert("请盖章后保存");
       return;
     }
+    var body = null;
     var token = localStorage.getItem("_token");
     token = "Bearer " + JSON.parse(token).token;
+    //获取印章的位置
+    let currentDocumentID = localStorage.getItem("currentDocumentID");
+    if (currentDocumentID === null) {
+    } else {
+      body = JSON.parse(currentDocumentID);
+    }
     var seals = [];
     //文档宽度，高度
     var contentDiv = $("#viewer .page")[0];
@@ -1034,10 +1031,7 @@ See https://github.com/adobe-type-tools/cmap-resources
       seals.push(seal);
     });
     $.ajax({
-      // url: "/spring/seal/wc?instanceGUID=" + instanceGUID + "&method=savePDF",
-      url:
-        "http://10.0.0.155:8080/services/bodylibrary/api/bodies/savepdf?doc_id=" +
-        "bfa7b446-0000-0000-45d1-5158000043ce",
+      url: `${accessUrl}/services/body/api/seal-service-logs/savepdf?doc_id=${body}`,
       type: "post",
       headers: { Authorization: token },
       data: { seals: JSON.stringify(seals) },
@@ -1046,9 +1040,42 @@ See https://github.com/adobe-type-tools/cmap-resources
         if (data.status == 1) {
           alert(data.msg);
         } else {
-          alert("保存成功");
-          window.location.reload();
+          window.top.location.reload(true);
         }
+      },
+      error: function () {
+        alert("发生了错误，请联系管理员");
+      },
+    });
+  }
+  function cancelSeal() {
+    var body = null;
+    var token = localStorage.getItem("_token");
+    token = "Bearer " + JSON.parse(token).token;
+    //获取印章的位置
+    let currentDocumentID = localStorage.getItem("currentDocumentID");
+    if (currentDocumentID === null) {
+    } else {
+      body = JSON.parse(currentDocumentID);
+    }
+    $.ajax({
+      url: `${accessUrl}/services/body/api/seal-service-logs/cancelSeal?doc_id=${body}`,
+      type: "post",
+      headers: { Authorization: token },
+      data: {},
+      success: function (data) {
+        console.log(data);
+        if (data) {
+          alert("撤销盖章成功");
+          window.top.location.reload(true);
+        }
+        // if(data == "1"){
+        // 	alert("撤销盖章成功");
+        // //	window.location.reload(true);
+        // 	window.location.href=parent.refreshUrl;
+        // }else{
+        // 	alert("撤销盖章失败，请联系管理员");
+        // }
       },
       error: function () {
         alert("发生了错误，请联系管理员");
@@ -1075,7 +1102,6 @@ See https://github.com/adobe-type-tools/cmap-resources
         ? this.currentStyle["top"]
         : getComputedStyle(this, null)["top"];
       document.getElementById("viewerContainer").appendChild(cloneTemp);
-
       if (cloneTemp.setCapture) {
         cloneTemp.setCapture();
       }
@@ -1100,7 +1126,6 @@ See https://github.com/adobe-type-tools/cmap-resources
 
       document.onmouseup = function (event) {
         //鼠标按键被松开时
-
         var event = event || window.event;
         var temp = document.getElementById("viewerContainer").scrollTop;
         // var tempTop = event.clientY - disY - 317;
@@ -1133,8 +1158,64 @@ See https://github.com/adobe-type-tools/cmap-resources
           cloneTemp.releaseCapture();
         }
       };
+
+      cloneTemp.onmousedown = function (event) {
+        console.log(0);
+        var event = event || window.event;
+        disX = event.offsetX;
+        disY = event.offsetY;
+        var cloneTemp = event.target;
+        if (cloneTemp.setCapture) {
+          cloneTemp.setCapture();
+        }
+        //鼠标移动事件
+        document.onmousemove = function (event) {
+          var event = event || window.event;
+          var iL = event.clientX - disX;
+          var iT = event.clientY - disY;
+          //   var maxL = document.documentElement.clientWidth - cloneMoves.offsetWidth;
+          //   var maxT = document.documentElement.clientHeight - cloneMoves.offsetHeight;
+          iL <= 0 && (iL = 0);
+          iT <= 0 && (iT = 0);
+          //  iL >= maxL && (iL = maxL);
+          //  iT >= maxT && (iT = maxT);
+          cloneTemp.style.left = iL + "px";
+          cloneTemp.style.top = iT + "px";
+        };
+        //鼠标松开事件
+        document.onmouseup = function (event) {
+          console.log(2);
+          var event = event || window.event;
+          event.preventDefault();
+          var cloneTemp = event.target;
+          if (!cloneTemp.id) {
+            var disX = event.offsetX;
+            var disY = event.offsetY;
+            var temp = document.getElementById("viewerContainer").scrollTop;
+            // var tempTop = event.clientY - disY - 317;
+            var tempTop = event.clientY - disY - 42;
+            if (window.ActiveXObject || "ActiveXObject" in window) {
+              tempTop += temp + 10;
+            } else {
+              tempTop += temp;
+            }
+            cloneTemp.style.top = tempTop + "px";
+            cloneTemp.style.position = "absolute";
+            cloneTemp.removeAttribute("id");
+          }
+          document.onmousemove = null;
+          document.onmouseup = null;
+          if (cloneTemp.releaseCapture) {
+            cloneTemp.releaseCapture();
+          }
+        };
+      };
       //document.getElementsByClassName('chapter-list')[0].style.display = "none";
       return false;
     };
+  }
+  function displaySealList() {
+    var seals = document.getElementById("seals");
+    seals.setAttribute("style", "display: none;");
   }
 </script>
